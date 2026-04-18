@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { LoginPage } from "./LoginPage";
 import { useAuth } from "../hooks/useAuth";
+import { signInWithGoogleOAuth } from "../lib/oauth";
 import { supabase } from "../lib/supabase";
 
 vi.mock("../hooks/useAuth", () => ({
@@ -17,8 +18,13 @@ vi.mock("../lib/supabase", () => ({
   },
 }));
 
+vi.mock("../lib/oauth", () => ({
+  signInWithGoogleOAuth: vi.fn(),
+}));
+
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedSignIn = vi.mocked(supabase.auth.signInWithPassword);
+const mockedGoogleSignIn = vi.mocked(signInWithGoogleOAuth);
 
 describe("LoginPage", () => {
   it("logs the user in and respects the redirect query param", async () => {
@@ -95,5 +101,32 @@ describe("LoginPage", () => {
       expect(startDemo).toHaveBeenCalled();
       expect(screen.getByText("Demo dashboard")).toBeInTheDocument();
     });
+  });
+
+  it("starts Google auth with the requested redirect target", async () => {
+    const user = userEvent.setup();
+
+    mockedUseAuth.mockReturnValue({
+      loading: false,
+      session: null,
+      user: null,
+      isDemo: false,
+      signOut: vi.fn(),
+      refreshSession: vi.fn(),
+      startDemo: vi.fn(),
+    });
+    mockedGoogleSignIn.mockResolvedValue(undefined);
+
+    render(
+      <MemoryRouter initialEntries={["/login?redirect=/event/abc123"]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    expect(mockedGoogleSignIn).toHaveBeenCalledWith("/event/abc123");
   });
 });
