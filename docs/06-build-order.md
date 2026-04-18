@@ -6,32 +6,32 @@ These features must work before anything else is touched. The entire product is 
 
 | Priority | Feature | Who |
 |---|---|---|
-| 1 | Supabase project setup — all 6 tables, RLS policies, Auth enabled | Backend |
-| 2 | Supabase Auth — email signup + login (Google OAuth optional) | Backend |
-| 3 | Face scan onboarding — `getUserMedia` + Rekognition `IndexFaces` + store `FaceId` | Fullstack |
-| 4 | Face scan opt-out — "Skip" flow that creates account without face profile | Fullstack |
+| 1 | Supabase project setup — tables, RLS policies, Auth enabled, private storage bucket for enrollment selfies | Backend |
+| 2 | Supabase Auth — email signup, login, and Google OAuth | Backend |
+| 3 | Face profile onboarding — `getUserMedia` + capture 3–5 selfies + upload to private Supabase Storage | Fullstack |
+| 4 | Face profile opt-out — "Skip" flow that creates account without a face profile | Fullstack |
 | 5 | Create event — event form + Rekognition `CreateCollection` + join link + QR code | Backend |
-| 6 | Join event via QR / link — login or signup inline → `event_members` INSERT | Fullstack |
+| 6 | Join event via QR/link — login or signup inline → `event_members` INSERT | Fullstack |
 | 7 | Photo upload (admin only) — Cloudinary upload + Rekognition `IndexFaces` per photo | Backend |
-| 8 | Matching pipeline — on join AND on upload, `SearchFaces`, write to `user_photo_matches` | Backend |
+| 8 | Matching pipeline — on join and on upload, `SearchFacesByImage`, then write to `user_photo_matches` | Backend |
 | 9 | Event gallery page — **My Photos** tab + **All Photos** tab, photo grid, download | Frontend |
 
 ---
 
 ## Priority 2 — Polish (hours 12–20)
 
-Build these only once Priority 1 is fully working end-to-end.
+Build these only once Priority 1 is fully working end to end.
 
 | Priority | Feature | Who |
 |---|---|---|
 | 10 | User dashboard — events joined + created, photo counts, expiry badges | Frontend |
-| 11 | Admin management — creator can promote/demote members | Frontend + Backend |
-| 12 | Real-time updates — Supabase subscription → My Photos count + All Photos grid update live | Frontend |
-| 13 | Gallery expiry banner — countdown shown when < 14 days remain | Frontend |
+| 11 | Admin management — creator can promote or demote members | Frontend + Backend |
+| 12 | Real-time updates — Supabase subscription updates My Photos count and All Photos grid live | Frontend |
+| 13 | Gallery expiry banner — countdown shown when fewer than 14 days remain | Frontend |
 | 14 | Landing page — product description, how it works, sign up CTA | Design |
 | 15 | Upload progress UI — "47 of 94 photos indexed" progress bar | Frontend |
 | 16 | Empty states — no photos yet, no matches found, gallery expired | Design + Frontend |
-| 17 | Account settings — view/update face profile, opt out / re-scan | Fullstack |
+| 17 | Account settings — view, replace, or delete face profile | Fullstack |
 
 ---
 
@@ -39,13 +39,13 @@ Build these only once Priority 1 is fully working end-to-end.
 
 | Feature | Reason |
 |---|---|
-| SMS / email notifications on match | Accounts + real-time updates make this redundant |
+| SMS or email notifications on match | Accounts + real-time updates already cover the key feedback loop |
 | Native mobile app | Responsive web handles everything |
 | Photo editing, watermarking, or print ordering | Out of scope |
 | In-app messaging or comments | Out of scope |
 | Payment processing or paid tiers | Out of scope |
-| Multiple face scans per user (glasses, masks) | Tune similarity threshold instead |
-| Nightly cleanup cron job | Can simulate manually for demo; implement post-hackathon |
+| Automated model training or fine-tuning | Rekognition is used as a managed service |
+| Nightly cleanup cron job polish | Manual trigger is enough for the hackathon demo if needed |
 
 ---
 
@@ -53,25 +53,25 @@ Build these only once Priority 1 is fully working end-to-end.
 
 ### Person 1 — Backend lead
 - Supabase schema + RLS policies
-- All Express API endpoints
-- AWS Rekognition integration (IndexFaces, SearchFaces, CreateCollection)
+- FastAPI routers and dependencies
+- AWS Rekognition integration (`IndexFaces`, `SearchFacesByImage`, `CreateCollection`)
 - Cloudinary upload pipeline
-- Matching pipeline logic (on join + on upload)
-- Railway/Render deployment
+- Matching pipeline logic on join + on upload
+- Railway or Render deployment
 
 ### Person 2 — Frontend lead
 - React app scaffold + Vite setup
 - React Router — all routes
-- Event gallery page (My Photos + All Photos tabs)
+- Event gallery page with My Photos + All Photos tabs
 - Photo grid UI, full-size photo modal, download button
 - Supabase real-time subscriptions in the gallery
 
 ### Person 3 — Fullstack + integration
 - Auth flows (signup, login, Google OAuth)
-- Join-via-QR page (inline signup or login)
-- Face scan onboarding UI (camera capture, opt-out flow)
-- Account settings page (face profile management)
-- Connects frontend to backend, integration testing
+- Join-via-QR page with inline signup or login
+- Face profile onboarding UI (camera capture, opt-out flow, 3–5 selfies)
+- Account settings page for face profile management
+- Connect frontend to backend and handle integration testing
 - Vercel deployment
 
 ### Person 4 — Design + pitch
@@ -81,7 +81,7 @@ Build these only once Priority 1 is fully working end-to-end.
 - Event creation flow UI
 - Upload progress UI + empty states
 - Expiry countdown banner
-- Demo prep — seeds fake event with real photos of the team
+- Demo prep — seed fake event with real photos of the team
 - 4-slide pitch deck
 
 ---
@@ -92,13 +92,14 @@ This is the technical core of the product. Get this working first.
 
 ```
 On user joins event (has face profile):
-  1. GET user.rekognition_face_id from Supabase
-  2. GET event.rekognition_collection_id from Supabase
-  3. Call Rekognition SearchFaces(faceId, collectionId, threshold=80)
-  4. Returns: array of { FaceId, Similarity }
-  5. Map each FaceId → photo_id via face_index table
-  6. INSERT into user_photo_matches (user_id, photo_id, event_id, similarity_score)
-  7. Supabase real-time fires → My Photos tab updates
+  1. GET event.rekognition_collection_id from Supabase
+  2. GET the user's 3–5 enrollment selfie files from the private Supabase bucket
+  3. For each enrollment selfie, call Rekognition SearchFacesByImage(collectionId, imageBytes, threshold=80)
+  4. Collect returned { FaceId, Similarity } matches
+  5. Map each FaceId → photo_id via the face_index table
+  6. De-duplicate photo_ids and keep the highest similarity score per photo
+  7. INSERT into user_photo_matches (user_id, photo_id, event_id, similarity_score)
+  8. Supabase real-time fires and My Photos updates
 
 On admin uploads new photos:
   1. For each photo:
@@ -106,42 +107,45 @@ On admin uploads new photos:
      b. Call Rekognition IndexFaces(imageBytes, collectionId)
      c. INSERT face_index rows for each detected face
      d. INSERT photo row in Supabase
-  2. Fetch all event_members WHERE face profile exists
+  2. Fetch all event_members with completed face profiles
   3. For each member:
-     a. Call Rekognition SearchFaces(member.faceId, collectionId)
-     b. INSERT new matches into user_photo_matches
-  4. Supabase real-time fires → all members' galleries update
+     a. Fetch that member's enrollment selfies
+     b. Call SearchFacesByImage for each selfie against the same collection
+     c. De-duplicate and INSERT new matches into user_photo_matches
+  4. Supabase real-time fires and members' galleries update
 ```
+
+Use background tasks so join and upload responses return quickly instead of waiting for all matching work to finish.
 
 ---
 
 ## Demo prep checklist (hours 20–24)
 
-- [ ] Take 50–100 real photos of team members at the hackathon itself — use these as the demo event
+- [ ] Take 50–100 real photos of team members at the hackathon itself and use these as the demo event
 - [ ] Create a demo event as the organizer account
-- [ ] Upload photos — confirm indexing completes
+- [ ] Upload photos and confirm indexing completes
 - [ ] Create 2–3 attendee accounts with different email addresses
-- [ ] Complete face scan for each — confirm My Photos populates correctly
-- [ ] Deploy to Vercel (frontend) + Railway (backend) — test full pipeline on real phones
+- [ ] Complete the face profile for each attendee and confirm My Photos populates correctly
+- [ ] Deploy to Vercel (frontend) + Railway/Render (backend) and test the full pipeline on real phones
 - [ ] Print the event QR code on paper for the live demo
-- [ ] Rehearse the demo flow: judge scans QR → signs up → face scan → My Photos shows their photo
-- [ ] Prepare Q&A answers (see below)
+- [ ] Rehearse the demo flow: judge scans QR → signs up → optional face profile → My Photos populates after matching
+- [ ] Prepare Q&A answers
 
 ---
 
 ## Q&A prep
 
 **"What about privacy and facial recognition?"**
-Completely opt-in — users choose to complete the face scan, and can skip it at signup. Facial data can be deleted from account settings at any time. No biometric data is stored in our database — only a Rekognition reference ID.
+It is completely opt-in. Users choose whether to complete the face profile and can skip it at signup. Enrollment selfies are stored in a private bucket and can be deleted from account settings at any time.
 
 **"What if the face matching is wrong?"**
-AWS Rekognition's similarity threshold is configurable. We default to 80% confidence. Users can report a wrong match with one tap, which removes it from their My Photos view.
+AWS Rekognition's similarity threshold is configurable. We default to 80% confidence and can support a simple "remove wrong match" action from My Photos.
 
 **"What happens after 30 days?"**
-Photos are deleted from storage and the gallery expires. Users see a countdown banner and are prompted to download their photos. Event metadata (name, date, members) is retained.
+Photos are deleted from storage and the gallery expires. Users see a countdown banner and are prompted to download their photos. Event metadata such as name, date, and members is retained.
 
 **"Why require sign-in to view the gallery?"**
-Event photos are private by default. Without authentication, anyone who found the link could view photos of people who didn't consent to public access. Sign-in ensures only invited attendees can see the gallery.
+Event photos are private by default. Without authentication, anyone who found the link could view photos of people who did not consent to public access. Sign-in ensures only invited attendees can see galleries.
 
 **"Can this scale beyond a hackathon demo?"**
-Yes. AWS Rekognition Face Collections scale to tens of millions of faces. Cloudinary handles any volume of photo delivery. Supabase Postgres handles high concurrency. The architecture is production-ready today.
+Yes. Cloudinary can serve large photo volumes, Supabase handles app data and auth, and Rekognition handles face search as a managed service. The architecture is hackathon-friendly while still leaving room to harden later.
