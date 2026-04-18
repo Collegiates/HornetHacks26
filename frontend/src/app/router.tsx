@@ -51,8 +51,8 @@ function HomeRoute() {
 export function AppRouter() {
   return (
     <Routes>
+      <Route path="/" element={<HomeRoute />} />
       <Route element={<AppLayout />}>
-        <Route path="/" element={<HomeRoute />} />
         <Route element={<PublicOnlyRoute />}>
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/login" element={<LoginPage />} />

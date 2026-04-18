@@ -3,6 +3,38 @@
 @tailwind utilities;
 
 :root {
+  --background: 30 25% 97%;
+  --foreground: 25 30% 12%;
+  --card: 30 20% 95%;
+  --card-foreground: 25 30% 12%;
+  --popover: 30 25% 97%;
+  --popover-foreground: 25 30% 12%;
+  --primary: 25 45% 35%;
+  --primary-foreground: 30 25% 97%;
+  --secondary: 30 15% 88%;
+  --secondary-foreground: 25 30% 18%;
+  --muted: 30 12% 90%;
+  --muted-foreground: 25 15% 45%;
+  --accent: 25 55% 42%;
+  --accent-foreground: 30 25% 97%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 25 15% 85%;
+  --input: 25 15% 85%;
+  --ring: 25 45% 35%;
+  --radius: 0.75rem;
+  --coffee-50: 30 30% 96%;
+  --coffee-100: 28 28% 90%;
+  --coffee-200: 26 24% 80%;
+  --coffee-300: 24 22% 65%;
+  --coffee-400: 22 28% 50%;
+  --coffee-500: 20 35% 40%;
+  --coffee-600: 18 40% 32%;
+  --coffee-700: 16 42% 25%;
+  --coffee-800: 14 44% 18%;
+  --coffee-900: 12 45% 12%;
+  --cream: 35 40% 95%;
+
   color: #4b3528;
   background:
     radial-gradient(circle at top left, rgba(236, 212, 187, 0.42), transparent 34%),
