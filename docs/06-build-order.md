@@ -53,7 +53,7 @@ Build these only once Priority 1 is fully working end-to-end.
 
 ### Person 1 — Backend lead
 - Supabase schema + RLS policies
-- All Express API endpoints
+- All FastAPI endpoints
 - AWS Rekognition integration (IndexFaces, SearchFaces, CreateCollection)
 - Cloudinary upload pipeline
 - Matching pipeline logic (on join + on upload)

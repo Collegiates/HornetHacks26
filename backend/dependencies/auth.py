@@ -3,29 +3,46 @@
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from backend.core.supabase_admin import getSupabaseAdminClient
 from backend.errors import AppError
 
-_bearer_scheme = HTTPBearer(auto_error=False)
+bearerScheme = HTTPBearer(auto_error=False)
 
 
 async def require_authenticated_user(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearerScheme),
 ) -> dict:
-    """Validate a Supabase JWT and return user claims.
-
-    Attaches userId, email, and raw claims to the request state.
-    For Stage 1 this is a placeholder — full JWT verification will be added
-    once supabase-admin client is wired.
-    """
+    """Validate a Supabase JWT and return user claims."""
     if credentials is None:
-        raise AppError("Missing authorization header", code="UNAUTHORIZED", status=401)
+        raise AppError(
+            "A valid bearer token is required.",
+            code="AUTH_REQUIRED",
+            status=401,
+        )
 
     token = credentials.credentials
     if not token:
-        raise AppError("Invalid bearer token", code="UNAUTHORIZED", status=401)
+        raise AppError(
+            "A valid bearer token is required.",
+            code="AUTH_REQUIRED",
+            status=401,
+        )
 
-    # TODO(stage-2): verify token via supabase admin client and decode claims
-    user = {"token": token}
-    request.state.user = user
-    return user
+    supabaseAdminClient = getSupabaseAdminClient()
+    userResponse = supabaseAdminClient.auth.get_user(token)
+    user = getattr(userResponse, "user", None)
+    if user is None:
+        raise AppError(
+            "The supplied bearer token is invalid.",
+            code="AUTH_INVALID",
+            status=401,
+        )
+
+    authenticatedUser = {
+        "email": getattr(user, "email", None),
+        "token": token,
+        "userId": str(getattr(user, "id")),
+    }
+    request.state.authenticatedUser = authenticatedUser
+    return authenticatedUser

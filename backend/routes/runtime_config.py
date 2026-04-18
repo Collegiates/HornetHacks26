@@ -8,7 +8,7 @@ router = APIRouter(tags=["config"])
 
 
 @router.get("/api/runtime-config")
-async def runtime_config():
+async def runtime_config() -> dict:
     """Return allowlisted browser-safe configuration values."""
     settings = getSettings()
-    return settings.public_config
+    return settings.publicConfig

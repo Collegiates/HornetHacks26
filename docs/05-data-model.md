@@ -107,11 +107,11 @@
 
 | Concern | Tool |
 |---|---|
-| Runtime | Node.js + Express |
-| File handling | Multer (multipart upload → stream to Cloudinary) |
-| Auth validation | Supabase JWT verification middleware |
-| Face indexing | AWS SDK v3 — Rekognition client |
-| Background jobs | Async queue per upload batch (Bull or simple async loop) |
+| Runtime | Python + FastAPI |
+| File handling | FastAPI `UploadFile` + async streaming to Cloudinary |
+| Auth validation | Supabase JWT verification dependency |
+| Face indexing | `boto3` Rekognition client |
+| Background jobs | Async background tasks or queue-backed worker per upload batch |
 | Scheduled cleanup | pg_cron (Supabase) or external cron hitting `/api/cleanup` |
 | Deployment | Railway or Render |
 

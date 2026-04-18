@@ -38,7 +38,6 @@ Stand up a production-shaped FastAPI backend that can safely own routing, permis
 
 - `config`
 - `main`
-- `app`
 - `dependencies/auth`
 - `dependencies/internal`
 - `errors`
@@ -259,18 +258,17 @@ Make the backend stable enough to replace the current temporary frontend fallbac
 Under [backend](/Users/tervin23/Documents/AG/PictureMe/backend), create:
 
 - `main.py`
-- `app/main.py`
-- `app/config.py`
-- `app/errors.py`
-- `app/core/logger.py`
-- `app/core/supabase_admin.py`
-- `app/core/supabase_user.py`
-- `app/dependencies/auth.py`
-- `app/dependencies/internal.py`
-- `app/middleware/request_logging.py`
-- `app/routes/health.py`
-- `app/routes/runtime_config.py` only if needed
-- `app/models/api.py`
+- `config.py`
+- `errors.py`
+- `core/logger.py`
+- `core/supabase_admin.py`
+- `core/supabase_user.py`
+- `dependencies/auth.py`
+- `dependencies/internal.py`
+- `middleware/request_logging.py`
+- `routes/health.py`
+- `routes/runtime_config.py` only if needed
+- `routes/debug.py` for Stage 1 contract validation
 
 Recommended default: Python with FastAPI and typed Pydantic models.
 
@@ -278,7 +276,7 @@ Recommended default: Python with FastAPI and typed Pydantic models.
 
 Stage 1 should validate these categories:
 
-- app: port, node env, frontend origin
+- app: port, app environment, frontend origin
 - Supabase: project URL, service-role key, JWT validation settings if needed
 - optional public frontend config allowlist
 - internal route secret or signed-token config for cleanup-style endpoints
