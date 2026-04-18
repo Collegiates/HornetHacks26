@@ -2,7 +2,7 @@
 
 ## Repository Purpose
 
-This repository contains the code and documentation for PictureMe, an event photo matching platform built around account-based face registration, event enrollment, photographer uploads, personalized galleries, and event history.
+This repository contains the code and documentation for PictureMe, an event photo matching platform built around account-based face registration, event creation, event-specific roles, gallery uploads, personalized galleries, and event history.
 
 ## Major Folders
 
@@ -11,7 +11,7 @@ This repository contains the code and documentation for PictureMe, an event phot
 Purpose:
 
 - Hosts the attendee-facing and organizer-facing web experience.
-- Likely contains account creation, face registration, QR event check-in, gallery views, and previous event history screens as the project develops.
+- Likely contains account creation, face registration, event creation, contributor management, QR event check-in, gallery views, and previous event history screens as the project develops.
 
 Current state:
 
@@ -23,7 +23,7 @@ Purpose:
 
 - Hosts server-side logic for photo ingestion, face processing, matching, database access, and SMS delivery.
 - Will coordinate the integrations with AWS Rekognition, Cloudinary, Supabase, and Twilio.
-- Will likely enforce photographer authorization, attendee enrollment, and personal gallery generation.
+- Will likely enforce event organizer permissions, contributor authorization, attendee enrollment, and personal gallery generation.
 
 Current state:
 

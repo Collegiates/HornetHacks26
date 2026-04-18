@@ -2,14 +2,24 @@
 
 ## End Goal
 
-Build a product that allows users to register their face to their account once, join events through QR check-in or organizer assignment, and automatically receive access to the professional photos they appear in whenever authorized photographers upload event images.
+Build a product that allows users to register their face to their account once, create and host events, assign event-specific upload permissions, join events through QR check-in or organizer assignment, and automatically receive access to the professional photos they appear in whenever event photos are uploaded.
 
 ## Core Moving Parts
 
 ### Photo Ingestion
 
-- Authorized photographers upload event photo sets to a specific event.
+- Event Organizers can upload event photo sets to a specific event.
+- Event Organizers can invite contributors who are also allowed to upload photos to that event.
+- Contributors can manage the photos they personally uploaded.
 - The system stores and organizes event images for later processing and delivery.
+
+### Event Roles And Permissions
+
+- Any user can create an event and become that event's Event Organizer.
+- The Event Organizer can manage the event, manage the gallery, and control contributor permissions for that event.
+- The Event Organizer can invite other users as contributors and remove that privilege later.
+- Contributors can upload photos and manage only the photos they uploaded.
+- Non-privileged users can view allowed gallery photos but do not have organizer or contributor permissions.
 
 ### User Registration And Face Enrollment
 
@@ -49,15 +59,18 @@ Build a product that allows users to register their face to their account once, 
 
 ## Scope Guardrails
 
-- Prioritize a working end-to-end account registration, event enrollment, matching, and gallery flow over advanced admin features.
+- Prioritize a working end-to-end account registration, event creation, permissions, enrollment, matching, and gallery flow over advanced admin features.
 - Prioritize reliable matching and delivery over social or editing features.
-- Keep photographer tools focused on authorized upload workflows, not full studio management.
+- Keep organizer and contributor tools focused on event-specific upload and gallery workflows, not full studio management.
 
 ## Success Criteria
 
 - A user can create an account and register their face.
+- A user can create an event and become its Event Organizer.
+- An Event Organizer can invite or remove contributors for a specific event.
 - A user can be attached to an event by QR scan or organizer assignment.
-- An authorized photographer can upload event photos.
+- An Event Organizer can upload event photos.
+- A contributor can upload photos to an event and manage their own uploads.
 - The system can identify likely matching photos for each registered user.
 - A user can view their personal event photos and the full event gallery.
 - A user receives text notifications when new event photos are uploaded.
