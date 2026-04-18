@@ -9,8 +9,17 @@
 | `email` | text | Unique |
 | `name` | text | Display name |
 | `avatar_url` | text | Optional profile photo |
-| `rekognition_face_id` | text | Null if user opted out of face scan |
-| `face_indexed_at` | timestamp | When face scan was completed |
+| `face_profile_completed` | boolean | Whether enrollment selfies exist |
+| `face_profile_updated_at` | timestamp | When enrollment was last updated |
+| `created_at` | timestamp | |
+
+### `face_profile_images`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid, PK | |
+| `user_id` | uuid, FK → users | |
+| `storage_path` | text | Path in private Supabase Storage bucket |
+| `sort_order` | int | 1 through 5 |
 | `created_at` | timestamp | |
 
 ### `events`
@@ -20,7 +29,7 @@
 | `name` | text | |
 | `description` | text | Optional |
 | `date` | date | Used to calculate 30-day expiry |
-| `expires_at` | timestamp | Computed: `date + 30 days` |
+| `expires_at` | timestamp | Computed as `date + 30 days` |
 | `creator_id` | uuid, FK → users | |
 | `join_token` | text, unique | Powers the `/join/[token]` URL |
 | `rekognition_collection_id` | text | AWS Rekognition collection for this event |
@@ -34,7 +43,7 @@
 | `id` | uuid, PK | |
 | `event_id` | uuid, FK → events | |
 | `user_id` | uuid, FK → users | |
-| `role` | enum | `member` / `admin` |
+| `role` | enum | `member` / `admin` / `creator` |
 | `joined_at` | timestamp | |
 
 ### `photos`
@@ -55,7 +64,7 @@
 | `id` | uuid, PK | |
 | `photo_id` | uuid, FK → photos | |
 | `event_id` | uuid, FK → events | |
-| `rekognition_face_id` | text | FaceId returned by Rekognition IndexFaces |
+| `rekognition_face_id` | text | FaceId returned by Rekognition `IndexFaces` |
 | `bounding_box` | jsonb | Face position in the photo |
 | `indexed_at` | timestamp | |
 
@@ -81,10 +90,10 @@
 
 ## Key relationships
 
-- **One user → one FaceId.** A user's `rekognition_face_id` is their permanent biometric key across all events. Null means they opted out.
-- **One event → one Rekognition collection.** All photos from an event are indexed into this collection. Deleted when the event expires.
-- **`user_photo_matches` is the core join table.** A row here means "this user appears in this photo." This is what powers the My Photos tab.
-- **`event_members.role`** controls upload access. `'member'` = view only. `'admin'` = can upload photos.
+- **One user → one reusable face profile.** A user has 3–5 enrollment selfies stored privately in Supabase Storage and referenced by `face_profile_images`. If there are no rows, they effectively opted out.
+- **One event → one Rekognition collection.** All photos from an event are indexed into this collection. It is deleted when the event expires.
+- **`user_photo_matches` is the core join table.** A row here means "this user appears in this photo." This powers the My Photos tab.
+- **`event_members.role`** controls upload access. `member` means view only. `admin` means upload photos. `creator` means full event control.
 
 ---
 
@@ -107,12 +116,15 @@
 
 | Concern | Tool |
 |---|---|
-| Runtime | Node.js + Express |
-| File handling | Multer (multipart upload → stream to Cloudinary) |
-| Auth validation | Supabase JWT verification middleware |
-| Face indexing | AWS SDK v3 — Rekognition client |
-| Background jobs | Async queue per upload batch (Bull or simple async loop) |
-| Scheduled cleanup | pg_cron (Supabase) or external cron hitting `/api/cleanup` |
+| Framework | FastAPI |
+| ASGI server | Uvicorn |
+| Auth validation | Supabase JWT verification dependency |
+| File handling | FastAPI `UploadFile` + `python-multipart` |
+| Face indexing | AWS Rekognition via `boto3` |
+| Media storage for event photos | Cloudinary |
+| Private storage for enrollment selfies | Supabase Storage private bucket |
+| Background jobs | FastAPI background tasks initially, queue later if needed |
+| Scheduled cleanup | Supabase scheduled function or external cron hitting a protected cleanup endpoint |
 | Deployment | Railway or Render |
 
 ---
@@ -121,16 +133,19 @@
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/face-scan` | User | Submit selfie → IndexFaces → store FaceId |
+| POST | `/api/auth/face-profile` | User | Upload 3–5 enrollment selfies and update face profile state |
+| DELETE | `/api/auth/face-profile` | User | Remove face profile and clear related match rows |
 | POST | `/api/events` | User | Create event + Rekognition collection |
-| GET | `/api/events/:id` | Member | Get event details + photo counts |
-| POST | `/api/events/:id/join` | User | Join event + trigger face match |
-| POST | `/api/events/:id/photos` | Admin | Upload photos → Cloudinary + IndexFaces |
-| GET | `/api/events/:id/photos` | Member | All photos for gallery |
-| GET | `/api/events/:id/my-photos` | Member | Matched photos for current user |
-| PATCH | `/api/events/:id/members/:userId` | Creator | Update member role |
+| GET | `/api/events/{id}` | Member | Get event details + photo counts |
+| GET | `/api/events/join/{token}` | Public | Get limited event preview by join token |
+| POST | `/api/events/{id}/join` | User | Join event + enqueue background match job |
+| POST | `/api/events/{id}/photos` | Admin | Upload photos → Cloudinary + `IndexFaces` |
+| GET | `/api/events/{id}/photos` | Member | All photos for gallery |
+| GET | `/api/events/{id}/my-photos` | Member | Matched photos for current user |
+| GET | `/api/events/{id}/members` | Member | Member list and roles |
+| PATCH | `/api/events/{id}/members/{user_id}` | Creator | Update member role |
 | POST | `/api/gallery-tokens` | Member | Generate shareable My Photos link |
-| GET | `/api/gallery/:token` | Public | Fetch shared gallery (no auth required) |
+| GET | `/api/gallery/{token}` | Public | Fetch shared gallery without auth |
 | POST | `/api/cleanup` | Internal | Nightly expiry job |
 
 ---
@@ -145,20 +160,37 @@ CREATE POLICY "users: read own" ON users
 -- Event members can read events they belong to
 CREATE POLICY "events: members can read" ON events
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM event_members
-    WHERE event_id = events.id AND user_id = auth.uid())
+    EXISTS (
+      SELECT 1 FROM event_members
+      WHERE event_id = events.id AND user_id = auth.uid()
+    )
   );
 
--- Only admins can insert photos
+-- Members of an event can read other members of the same event
+CREATE POLICY "event_members: members can read same event" ON event_members
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM event_members em
+      WHERE em.event_id = event_members.event_id AND em.user_id = auth.uid()
+    )
+  );
+
+-- Only admins and creators can insert photos
 CREATE POLICY "photos: admins can insert" ON photos
   FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM event_members
-    WHERE event_id = photos.event_id
-    AND user_id = auth.uid()
-    AND role IN ('admin', 'creator'))
+    EXISTS (
+      SELECT 1 FROM event_members
+      WHERE event_id = photos.event_id
+      AND user_id = auth.uid()
+      AND role IN ('admin', 'creator')
+    )
   );
 
 -- Users can only read their own matches
 CREATE POLICY "matches: read own" ON user_photo_matches
   FOR SELECT USING (user_id = auth.uid());
+
+-- Users can only manage their own face profile image references
+CREATE POLICY "face_profile_images: own rows only" ON face_profile_images
+  FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 ```
