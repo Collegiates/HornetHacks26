@@ -1,4 +1,5 @@
 import { getDemoApiResponse, isDemoMode } from "./demo";
+import { handleSupabaseApiRequest } from "./supabaseApi";
 import { supabase } from "./supabase";
 
 type AuthMode = boolean | "optional";
@@ -8,7 +9,7 @@ interface ApiFetchOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
 
 export async function apiFetch<T = unknown>(
   path: string,
@@ -36,7 +37,11 @@ export async function apiFetch<T = unknown>(
     }
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  if (!apiBaseUrl && path.startsWith("/api/")) {
+    return handleSupabaseApiRequest<T>(path, { body: requestBody, method });
+  }
+
+  const response = await fetch(`${apiBaseUrl}${path}`, {
     ...requestInit,
     method,
     headers: requestHeaders,
