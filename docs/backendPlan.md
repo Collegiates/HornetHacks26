@@ -38,7 +38,6 @@ Stand up a production-shaped FastAPI backend that can safely own routing, permis
 
 - `config`
 - `main`
-- `app`
 - `dependencies/auth`
 - `dependencies/internal`
 - `errors`

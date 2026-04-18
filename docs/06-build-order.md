@@ -58,7 +58,7 @@ Build these only once Priority 1 is fully working end to end.
 - AWS Rekognition integration (`IndexFaces`, `SearchFacesByImage`, `CreateCollection`)
 - Cloudinary upload pipeline
 - Matching pipeline logic on join + on upload
-- Railway or Render deployment
+- Vercel deployment
 
 ### Person 2 — Frontend lead
 - React app scaffold + Vite setup

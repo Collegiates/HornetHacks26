@@ -5,52 +5,45 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import getSettings
-from backend.errors import register_error_handlers
-from backend.logging import configure_logging, log_requests
-from backend.routes.health import router as health_router
-from backend.routes.runtime_config import router as config_router
-from backend.routes.verification import router as verification_router
+from backend.errors import registerErrorHandlers
+from backend.middleware.request_logging import RequestLoggingMiddleware
+from backend.routes.account import router as accountRouter
+from backend.routes.debug import router as debugRouter
+from backend.routes.health import router as healthRouter
+from backend.routes.runtime_config import router as configRouter
 
 settings = getSettings()
-configure_logging(settings)
 
 app = FastAPI(
     title="PictureMe API",
-    version="0.1.0",
-    docs_url="/api/docs" if settings.is_development else None,
-    redoc_url="/api/redoc" if settings.is_development else None,
+    version="0.2.0",
+    docs_url="/api/docs" if settings.isDevelopment else None,
+    redoc_url="/api/redoc" if settings.isDevelopment else None,
 )
-
-# --- Middleware -----------------------------------------------------------
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin, settings.app_origin],
+    allow_origins=[settings.frontendOrigin, settings.appOrigin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.middleware("http")(log_requests)
+app.add_middleware(RequestLoggingMiddleware)
 
-# --- Error handlers -------------------------------------------------------
+registerErrorHandlers(app)
 
-register_error_handlers(app)
+app.include_router(healthRouter)
+app.include_router(configRouter)
+app.include_router(debugRouter)
+app.include_router(accountRouter)
 
-# --- Routes ---------------------------------------------------------------
-
-app.include_router(health_router)
-app.include_router(config_router)
-app.include_router(verification_router)
-
-
-# --- Local entrypoint -----------------------------------------------------
 
 def _run() -> None:
     uvicorn.run(
         "backend.main:app",
         host="0.0.0.0",
         port=settings.port,
-        reload=settings.is_development,
+        reload=settings.isDevelopment,
     )
 
 

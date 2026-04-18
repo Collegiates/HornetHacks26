@@ -1,9 +1,10 @@
 """Environment validation and typed settings access."""
 
 from functools import lru_cache
-from typing import Any, Literal
+from pathlib import Path
+from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,53 +12,58 @@ class Settings(BaseSettings):
     """Typed settings validated at startup from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(Path(__file__).resolve().parent / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
-    # App
-    port: int = 8000
-    node_env: Literal["development", "test", "production"] = "development"
-    app_origin: str = "http://localhost:3000"
-    frontend_origin: str = "http://localhost:5173"
-    log_level: Literal["debug", "info", "warning", "error", "critical"] = "info"
-
-    # Supabase
-    supabase_url: str = Field(min_length=1)
-    supabase_service_role_key: SecretStr
-
-    # Internal
-    internal_api_secret: SecretStr
-
-    # OAuth
-    google_oauth_enabled: bool = True
+    appOrigin: str = Field(alias="APP_ORIGIN")
+    appEnv: Literal["development", "test", "production"] = Field(
+        default="development",
+        validation_alias=AliasChoices("APP_ENV", "NODE_ENV"),
+    )
+    faceProfileBucket: str = Field(
+        default="face-profile-images",
+        alias="SUPABASE_FACE_PROFILE_BUCKET",
+    )
+    frontendOrigin: str = Field(alias="FRONTEND_ORIGIN")
+    googleOAuthEnabled: bool = Field(default=False, alias="GOOGLE_OAUTH_ENABLED")
+    internalApiSecret: SecretStr = Field(alias="INTERNAL_API_SECRET")
+    logLevel: Literal["debug", "info", "warning", "error", "critical"] = Field(
+        default="info",
+        alias="LOG_LEVEL",
+    )
+    port: int = Field(default=8000, alias="PORT")
+    supabasePublishableKey: str = Field(default="", alias="SUPABASE_PUBLISHABLE_KEY")
+    supabaseSecretKey: SecretStr = Field(
+        validation_alias=AliasChoices("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"),
+    )
+    supabaseUrl: str = Field(alias="SUPABASE_URL")
 
     @property
-    def is_development(self) -> bool:
-        return self.node_env == "development"
+    def internalApiSecretValue(self) -> str:
+        return self.internalApiSecret.get_secret_value()
 
     @property
-    def public_config(self) -> dict[str, Any]:
+    def isDevelopment(self) -> bool:
+        return self.appEnv == "development"
+
+    @property
+    def publicConfig(self) -> dict[str, object]:
         """Browser-safe config values that can be exposed to the frontend."""
         return {
-            "appOrigin": self.app_origin,
-            "frontendOrigin": self.frontend_origin,
-            "googleOAuthEnabled": self.google_oauth_enabled,
+            "apiBaseUrl": self.appOrigin,
+            "appOrigin": self.appOrigin,
+            "frontendOrigin": self.frontendOrigin,
+            "googleOAuthEnabled": self.googleOAuthEnabled,
         }
 
     @property
-    def supabase_service_role_key_value(self) -> str:
-        """Return the raw Supabase service role key for backend-only use."""
-        return self.supabase_service_role_key.get_secret_value()
-
-    @property
-    def internal_api_secret_value(self) -> str:
-        """Return the raw internal API secret for backend-only use."""
-        return self.internal_api_secret.get_secret_value()
+    def supabaseSecretKeyValue(self) -> str:
+        return self.supabaseSecretKey.get_secret_value()
 
 
 @lru_cache
 def getSettings() -> Settings:
-    """Return a cached Settings instance. Fails fast on missing required config."""
+    """Return a cached settings instance and fail fast on invalid config."""
     return Settings()

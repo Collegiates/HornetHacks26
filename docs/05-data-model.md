@@ -125,7 +125,7 @@
 | Private storage for enrollment selfies | Supabase Storage private bucket |
 | Background jobs | FastAPI background tasks initially, queue later if needed |
 | Scheduled cleanup | Supabase scheduled function or external cron hitting a protected cleanup endpoint |
-| Deployment | Railway or Render |
+| Deployment | Vercel Python Functions |
 
 ---
 
@@ -133,8 +133,10 @@
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/face-profile` | User | Upload 3–5 enrollment selfies and update face profile state |
-| DELETE | `/api/auth/face-profile` | User | Remove face profile and clear related match rows |
+| GET | `/api/account` | User | Load account settings and face-profile status |
+| PATCH | `/api/account/profile` | User | Update profile fields owned by the backend |
+| POST | `/api/account/face-profile` | User | Upload enrollment selfie data and update face profile state |
+| DELETE | `/api/account/face-profile` | User | Remove face profile and clear related match rows |
 | POST | `/api/events` | User | Create event + Rekognition collection |
 | GET | `/api/events/{id}` | Member | Get event details + photo counts |
 | GET | `/api/events/join/{token}` | Public | Get limited event preview by join token |
