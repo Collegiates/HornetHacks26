@@ -1,0 +1,128 @@
+import { AlertCircle, ArrowRight, Images, Link as LinkIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { EmptyState } from "../components/EmptyState";
+import { PhotoGrid } from "../components/PhotoGrid";
+import { PhotoLightbox } from "../components/PhotoLightbox";
+import { Spinner } from "../components/Spinner";
+import { apiFetch } from "../lib/api";
+import { formatDate } from "../lib/date";
+import type { GalleryResponse } from "../types";
+
+export function PublicGalleryPage() {
+  const { token = "" } = useParams();
+  const [gallery, setGallery] = useState<GalleryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadGallery() {
+      setLoading(true);
+      try {
+        const response = await apiFetch<GalleryResponse>(`/api/gallery/${token}`, {
+          auth: false,
+        });
+        setGallery(response);
+      } catch (requestError) {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : "PictureMe could not load this shared gallery.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadGallery();
+  }, [token]);
+
+  if (loading) {
+    return (
+      <div className="page-shell flex min-h-[60vh] items-center justify-center">
+        <Spinner label="Loading shared gallery..." />
+      </div>
+    );
+  }
+
+  if (error || !gallery) {
+    return (
+      <div className="page-shell max-w-2xl">
+        <div className="surface-card flex gap-3 p-6">
+          <AlertCircle className="mt-1 h-5 w-5 text-red-600" />
+          <div>
+            <h1 className="text-2xl text-ink">Shared gallery unavailable</h1>
+            <p className="mt-2 text-sm leading-6 text-slate">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-shell space-y-6">
+      {lightboxIndex !== null ? (
+        <PhotoLightbox
+          photos={gallery.photos}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      ) : null}
+
+      <section className="surface-card space-y-5 p-6">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-seafoam-500">
+            Shared gallery
+          </p>
+          <h1 className="text-4xl text-ink">{gallery.event.name}</h1>
+          <p className="text-sm text-slate">
+            {formatDate(gallery.event.date)} • Shared by {gallery.sharedBy.name}
+          </p>
+        </div>
+
+        {gallery.downloadAllUrl ? (
+          <a
+            className="primary-button"
+            href={gallery.downloadAllUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <LinkIcon className="mr-2 h-4 w-4" />
+            Download all
+          </a>
+        ) : null}
+
+        {gallery.photos.length ? (
+          <PhotoGrid
+            photos={gallery.photos}
+            onSelect={(index) => setLightboxIndex(index)}
+          />
+        ) : (
+          <EmptyState
+            icon={<Images className="h-7 w-7" />}
+            title="No shared photos yet"
+            description="This public gallery link is active, but there are no matched photos available right now."
+          />
+        )}
+      </section>
+
+      <section className="surface-card flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-seafoam-500">
+            Want your own gallery?
+          </p>
+          <h2 className="mt-2 text-2xl text-ink">Join PictureMe for future events</h2>
+          <p className="mt-2 text-sm leading-6 text-slate">
+            Create your account once, add a face profile when you’re ready, and
+            open My Photos instantly at the next event.
+          </p>
+        </div>
+        <Link className="primary-button" to="/signup">
+          Join PictureMe
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Link>
+      </section>
+    </div>
+  );
+}
