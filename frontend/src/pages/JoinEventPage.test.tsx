@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { JoinEventPage } from "./JoinEventPage";
 import { useAuth } from "../hooks/useAuth";
 import { apiFetch } from "../lib/api";
+import { signInWithGoogleOAuth } from "../lib/oauth";
 import { supabase } from "../lib/supabase";
 
 vi.mock("../hooks/useAuth", () => ({
@@ -12,6 +13,10 @@ vi.mock("../hooks/useAuth", () => ({
 
 vi.mock("../lib/api", () => ({
   apiFetch: vi.fn(),
+}));
+
+vi.mock("../lib/oauth", () => ({
+  signInWithGoogleOAuth: vi.fn(),
 }));
 
 vi.mock("../lib/supabase", () => ({
@@ -26,6 +31,7 @@ vi.mock("../lib/supabase", () => ({
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedApiFetch = vi.mocked(apiFetch);
 const mockedSignIn = vi.mocked(supabase.auth.signInWithPassword);
+const mockedGoogleSignIn = vi.mocked(signInWithGoogleOAuth);
 
 describe("JoinEventPage", () => {
   it("logs in inline and joins the event without leaving the join route first", async () => {
@@ -94,5 +100,50 @@ describe("JoinEventPage", () => {
       password: "password123",
     });
     expect(refreshSession).toHaveBeenCalled();
+  });
+
+  it("starts Google auth from the invite route", async () => {
+    const user = userEvent.setup();
+
+    mockedUseAuth.mockReturnValue({
+      loading: false,
+      session: null,
+      user: null,
+      isDemo: false,
+      signOut: vi.fn(),
+      refreshSession: vi.fn(),
+      startDemo: vi.fn(),
+    });
+    mockedGoogleSignIn.mockResolvedValue(undefined);
+    mockedApiFetch.mockImplementation(async (path: string) => {
+      if (path === "/api/events/join/demo-token") {
+        return {
+          id: "event-1",
+          name: "Demo Event",
+          date: "2026-06-21",
+          hostName: "Avery",
+          photoCount: 42,
+          memberCount: 9,
+          status: "active",
+          expiresAt: "2026-07-21",
+          joinToken: "demo-token",
+        };
+      }
+
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/join/demo-token"]}>
+        <Routes>
+          <Route path="/join/:token" element={<JoinEventPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Demo Event")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /join with google/i }));
+
+    expect(mockedGoogleSignIn).toHaveBeenCalledWith("/join/demo-token");
   });
 });

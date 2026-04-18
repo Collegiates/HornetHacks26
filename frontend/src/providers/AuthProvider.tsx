@@ -49,6 +49,31 @@ function mapUser(user: User | null): AuthUser | null {
   };
 }
 
+async function loadAuthUser(user: User | null) {
+  if (!user) {
+    return null;
+  }
+
+  const fallbackUser = mapUser(user);
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, email, name, avatar_url, face_indexed_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (error || !data) {
+    return fallbackUser;
+  }
+
+  return {
+    id: data.id,
+    email: data.email,
+    name: data.name,
+    avatarUrl: data.avatar_url ?? undefined,
+    hasFaceProfile: Boolean(data.face_indexed_at),
+  } satisfies AuthUser;
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -69,7 +94,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       data: { session: activeSession },
     } = await supabase.auth.getSession();
     setSession(activeSession);
-    setUser(mapUser(activeSession?.user ?? null));
+    setUser(await loadAuthUser(activeSession?.user ?? null));
     setDemo(false);
     setLoading(false);
   }, []);
@@ -96,18 +121,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, activeSession) => {
-      if (isDemoMode()) {
-        setDemo(true);
-        setSession(getDemoSession());
-        setUser(getDemoUser());
-        setLoading(false);
-        return;
-      }
+      void (async () => {
+        if (isDemoMode()) {
+          setDemo(true);
+          setSession(getDemoSession());
+          setUser(getDemoUser());
+          setLoading(false);
+          return;
+        }
 
-      setSession(activeSession);
-      setUser(mapUser(activeSession?.user ?? null));
-      setDemo(false);
-      setLoading(false);
+        setSession(activeSession);
+        setUser(await loadAuthUser(activeSession?.user ?? null));
+        setDemo(false);
+        setLoading(false);
+      })();
     });
 
     return () => {

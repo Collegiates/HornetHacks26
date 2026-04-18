@@ -2,6 +2,7 @@ import { AlertCircle, ArrowRight, CalendarDays, Images, Users } from "lucide-rea
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FaceScanCapture } from "../components/FaceScanCapture";
+import { GoogleAuthButton } from "../components/GoogleAuthButton";
 import { InlineAuthPanel } from "../components/InlineAuthPanel";
 import { Spinner } from "../components/Spinner";
 import { useAuth } from "../hooks/useAuth";
@@ -221,6 +222,25 @@ export function JoinEventPage() {
             ) : (
               <div className="space-y-4">
                 <InlineAuthPanel mode={mode} onModeChange={setMode} />
+
+                <GoogleAuthButton
+                  className="secondary-button w-full border-[#d9cdc1] bg-white"
+                  label={
+                    mode === "signup"
+                      ? "Join with Google"
+                      : "Continue with Google"
+                  }
+                  redirectPath={`/join/${token}`}
+                  onError={setError}
+                />
+
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#e6d9cb]" />
+                  <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate/70">
+                    Or with email
+                  </span>
+                  <div className="h-px flex-1 bg-[#e6d9cb]" />
+                </div>
 
                 <form
                   className="space-y-4"

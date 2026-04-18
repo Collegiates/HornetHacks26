@@ -11,23 +11,32 @@ This repository contains the code and documentation for PictureMe, an event phot
 Purpose:
 
 - Hosts the attendee-facing and organizer-facing web experience.
-- Likely contains account creation, face registration, event creation, contributor management, QR event check-in, gallery views, and previous event history screens as the project develops.
+- Contains account creation, login, dashboard, event gallery, account settings, and event settings screens.
+- Owns the browser-side Supabase connection used for auth and temporary direct data access before the backend is implemented.
 
 Current state:
 
-- Placeholder directory ready for implementation.
+- Active Vite + React frontend with Supabase auth wiring and route-level UI implementation.
+
+Documentation:
+
+- [Frontend Notes](/Users/tervin23/Documents/AG/PictureMe/docs/frontend.md)
 
 ### [backend](/Users/tervin23/Documents/AG/PictureMe/backend)
 
 Purpose:
 
-- Hosts server-side logic for photo ingestion, face processing, matching, database access, and SMS delivery.
-- Will coordinate the integrations with AWS Rekognition, Cloudinary, Supabase, and Twilio.
-- Will likely enforce event organizer permissions, contributor authorization, attendee enrollment, and personal gallery generation.
+- Hosts the Python + FastAPI backend service.
+- Owns API routing, Supabase JWT validation, protected runtime configuration boundaries, and the orchestration layer for event, gallery, upload, and matching workflows.
+- Coordinates the integrations with Supabase, AWS Rekognition, and Cloudinary as later stages are implemented.
 
 Current state:
 
-- Placeholder directory ready for implementation.
+- Stage 1 foundation scaffolded with FastAPI app bootstrapping, config validation, dependencies, middleware, and health/runtime-config routes.
+
+Documentation:
+
+- [Backend Notes](/Users/tervin23/Documents/AG/PictureMe/docs/backend.md)
 
 ### [docs](/Users/tervin23/Documents/AG/PictureMe/docs)
 
@@ -40,3 +49,5 @@ Current files:
 
 - `scope.md`: Defines the product goal, core moving parts, and scope limits.
 - `project-structure.md`: Describes the main folders and their responsibilities.
+- `backendPlan.md`: Breaks backend implementation into staged delivery milestones tied to the documented product flow.
+- `frontend.md`: Documents the current frontend structure and Supabase integration boundary.

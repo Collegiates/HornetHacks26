@@ -1,6 +1,7 @@
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { GoogleAuthButton } from "../components/GoogleAuthButton";
 import { getRedirectTarget } from "../lib/redirect";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
@@ -62,7 +63,24 @@ export function LoginPage() {
           </p>
         </div>
 
-        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+        <div className="mt-8 space-y-5">
+          <GoogleAuthButton
+            className="secondary-button w-full border-[#d9cdc1] bg-white"
+            label="Continue with Google"
+            redirectPath={redirectTarget}
+            onError={setError}
+          />
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-[#e6d9cb]" />
+            <span className="text-xs font-semibold uppercase tracking-[0.24em] text-slate/70">
+              Or with email
+            </span>
+            <div className="h-px flex-1 bg-[#e6d9cb]" />
+          </div>
+        </div>
+
+        <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
           <label className="block space-y-2">
             <span className="text-sm font-medium text-ink">Email</span>
             <div className="field-shell">
