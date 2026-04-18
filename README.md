@@ -2,7 +2,7 @@
 
 PictureMe is an event photo delivery platform that helps attendees find every professional photo they appear in without manually searching through a large gallery.
 
-Users create an account, register their face during sign-up, and then use that face profile across events. At each event, attendees scan a QR code to register their attendance, and once authorized photographers upload photos, each user can view the photos they appear in or browse the full event gallery.
+Users create an account, register their face during sign-up, and then use that face profile across events. Any user can create and host an event, which makes them that event's organizer. Organizers can upload photos, manage the event gallery, invite contributors who can also upload photos, and control those permissions per event. Other users can attend events and view gallery photos without receiving those advanced management privileges.
 
 ## Project Idea
 
@@ -12,17 +12,19 @@ PictureMe is designed to solve a common event problem:
 - Attendees rarely have time to browse everything manually.
 - Most people only care about the photos they are actually in.
 
-The core idea is to combine account-based face registration, event check-in, and automated face matching so attendees can quickly access the photos that matter to them.
+The core idea is to combine account-based face registration, event-level roles, event check-in, and automated face matching so attendees can quickly access the photos that matter to them while organizers retain control of each event gallery.
 
 ## Intended User Flow
 
 1. A user creates an account and scans their face so it can be registered to their profile.
-2. An event organizer creates an event and generates an event QR code.
-3. Attendees are associated with the event either by scanning the QR code or by being manually added by the organizer.
-4. Authorized photographers upload professional photos to that event.
-5. The platform processes uploaded images and compares detected faces against registered user face data.
-6. Users receive a text message when new event pictures have been uploaded.
-7. Inside the app, users can view their personal matched photos, browse the full gallery, and review all of their previous events.
+2. Any user can create an event, which makes them the Event Organizer for that event.
+3. The Event Organizer generates an event QR code and can also manually add attendees.
+4. The Event Organizer can upload photos, manage the event gallery, invite contributors, and remove contributor privileges when needed.
+5. Invited contributors can upload photos to that event and manage the photos they personally uploaded.
+6. Attendees are associated with the event either by scanning the QR code or by being manually added by the organizer.
+7. The platform processes uploaded images and compares detected faces against registered user face data.
+8. Users receive a text message when new event pictures have been uploaded.
+9. Inside the app, users can view their personal matched photos, browse the full gallery, and review all of their previous events.
 
 ## APIs And Tools Used
 
@@ -65,7 +67,7 @@ Used for:
 
 - Application database storage
 - User account data and registered face metadata management
-- Event, attendee, photographer, and gallery metadata management
+- Event, attendee, organizer, contributor, and gallery metadata management
 - Face embedding storage and similarity search with `pgvector`
 - Backend data access and application state management
 
@@ -82,7 +84,7 @@ Used for:
 ## Why This Stack Fits The Product
 
 - `AWS Rekognition` handles the computer vision portion of the product.
-- `Supabase` stores user, event, attendee, photographer, and gallery data while enabling face similarity workflows with `pgvector`.
+- `Supabase` stores user, event, organizer, contributor, attendee, and gallery data while enabling face similarity workflows with `pgvector`.
 - `Cloudinary` manages media storage and delivery for event photos.
 - `Twilio SMS` closes the loop by notifying users when event photos are uploaded and delivering gallery access to the attendee.
 - `qrcode.react` provides a simple attendee onboarding mechanism at the event itself.
@@ -90,9 +92,12 @@ Used for:
 ## Core Product Features
 
 - Account creation with face registration tied to the user profile
+- User-created events with per-event organizer privileges
 - Event check-in through QR code scanning
 - Manual attendee assignment by organizers when needed
-- Authorized photographer uploads for each event
+- Organizer-managed contributor access per event
+- Organizer and contributor photo uploads for each event
+- Per-event gallery management by the Event Organizer
 - Personal photo gallery based on registered face matching
 - Full event gallery browsing
 - Previous event history for each user
