@@ -16,6 +16,7 @@ These features must work before anything else is touched. The entire product is 
 | 8 | Matching pipeline — on join and on upload, `SearchFacesByImage`, then write to `user_photo_matches` | Backend |
 | 9 | Event gallery page — **My Photos** tab + **All Photos** tab, photo grid, download | Frontend |
 
+
 ---
 
 ## Priority 2 — Polish (hours 12–20)
